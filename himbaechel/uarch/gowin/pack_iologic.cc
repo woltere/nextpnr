@@ -259,7 +259,9 @@ bool GowinPacker::is_mipi_io(BelId bel)
 
 CellInfo *GowinPacker::create_aux_iologic_cell(CellInfo &ci, IdString mode, bool io16, int idx)
 {
-    if (ci.type.in(id_ODDR, id_ODDRC, id_OSER4, id_IDDR, id_IDDRC, id_IDES4, id_IOLOGICI_EMPTY, id_IOLOGICO_EMPTY)) {
+    if (ci.type.in(id_ODDR, id_ODDRC, id_OSER4, id_IDDR, id_IDDRC, id_IDES4,
+                   id_IOLOGICI_EMPTY, id_IOLOGICO_EMPTY,
+                   id_IDDR_MEM, id_IDES4_MEM, id_IDES8_MEM, id_ODDR_MEM, id_OSER4_MEM, id_OSER8_MEM)) {
         return nullptr;
     }
     IdString aux_name = gwu.create_aux_name(ci.name, idx);
@@ -341,12 +343,14 @@ void GowinPacker::pack_ides_iol(CellInfo &ci, std::vector<IdString> &nets_to_rem
                   ctx->nameOf(ctx->getBoundBelCell(l_bel)));
     }
     // Disconnect _MEM-specific ports that IOLOGICI BELs don't have
+    log_info("DEBUG: packing _MEM input cell %s of type %s\n", ctx->nameOf(&ci), ci.type.c_str(ctx));
     if (ci.ports.count(id_ICLK))
         ci.disconnectPort(id_ICLK);
     if (ci.ports.count(id_WADDR))
         ci.disconnectPort(id_WADDR);
     if (ci.ports.count(id_RADDR))
         ci.disconnectPort(id_RADDR);
+    log_info("DEBUG: about to bindBel for %s\n", ctx->nameOf(&ci));
     ctx->bindBel(l_bel, &ci, PlaceStrength::STRENGTH_LOCKED);
     std::string in_mode;
     switch (ci.type.hash()) {
@@ -655,6 +659,7 @@ void GowinPacker::pack_iodelay(void)
     for (auto net : nets_to_remove) {
         ctx->nets.erase(net);
     }
+    log_info("DEBUG: pack_iologic cleanup done\n");
 }
 
 void GowinPacker::pack_iologic(void)
@@ -680,9 +685,11 @@ void GowinPacker::pack_iologic(void)
             create_aux_iologic_cell(ci, ctx->id("OUTMODE"));
             continue;
         }
-        if (ci.type.in(id_IDDR, id_IDDRC, id_IDES4, id_IDES8, id_IDES4_MEM, id_IDES8_MEM, id_IDDR_MEM, id_IDES10, id_IVIDEO, id_IOLOGICI_EMPTY)) {
+        if (ci.type.in(id_IDDR, id_IDDRC, id_IDES4, id_IDES8, /*id_IDES4_MEM, id_IDES8_MEM, id_IDDR_MEM,*/ id_IDES10, id_IVIDEO, id_IOLOGICI_EMPTY)) {
             pack_ides_iol(ci, nets_to_remove);
+            log_info("DEBUG: done ides_iol for %s\n", ctx->nameOf(&ci));
             create_aux_iologic_cell(ci, ctx->id("INMODE"));
+            log_info("DEBUG: done aux for %s\n", ctx->nameOf(&ci));
             continue;
         }
     }
@@ -690,6 +697,7 @@ void GowinPacker::pack_iologic(void)
     for (auto net : nets_to_remove) {
         ctx->nets.erase(net);
     }
+    log_info("DEBUG: pack_iologic cleanup done\n");
 }
 
 // ===================================
@@ -881,5 +889,6 @@ void GowinPacker::pack_io16(void)
     for (auto net : nets_to_remove) {
         ctx->nets.erase(net);
     }
+    log_info("DEBUG: pack_iologic cleanup done\n");
 }
 NEXTPNR_NAMESPACE_END
