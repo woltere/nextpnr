@@ -145,6 +145,8 @@ void GowinPacker::pack_bi_output_iol(CellInfo &ci, std::vector<IdString> &nets_t
         out_mode = "ODDRX2";
         break;
     case ID_ODDR_MEM:
+        out_mode = "ODDRX1";
+        break;
     }
     ci.setParam(ctx->id("OUTMODE"), out_mode);
 
