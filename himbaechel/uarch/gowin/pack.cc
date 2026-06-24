@@ -623,7 +623,6 @@ void GowinPacker::run(void)
     ctx->check();
 
     pack_iologic();
-    log_info("DEBUG: pack_iologic returned OK\n");
     ctx->check();
 
     pack_io16();
