@@ -125,6 +125,11 @@ void GowinPacker::pack_bi_output_iol(CellInfo &ci, std::vector<IdString> &nets_t
         log_error("Can't place %s at %s because it's already taken by %s\n", ctx->nameOf(&ci), ctx->nameOfBel(l_bel),
                   ctx->nameOf(ctx->getBoundBelCell(l_bel)));
     }
+    // Disconnect _MEM-specific TCLK port — not a BEL pin on IOLOGICO
+    if (ci.ports.count(id_TCLK)) {
+        ci.disconnectPort(id_TCLK);
+        ci.ports.erase(id_TCLK);
+    }
     ctx->bindBel(l_bel, &ci, PlaceStrength::STRENGTH_LOCKED);
     std::string out_mode;
     switch (ci.type.hash()) {
@@ -212,8 +217,10 @@ void GowinPacker::pack_single_output_iol(CellInfo &ci, std::vector<IdString> &ne
                   ctx->nameOf(ctx->getBoundBelCell(l_bel)));
     }
     // Disconnect _MEM-specific TCLK port — not a BEL pin on IOLOGICO
-    if (ci.ports.count(id_TCLK))
+    if (ci.ports.count(id_TCLK)) {
         ci.disconnectPort(id_TCLK);
+        ci.ports.erase(id_TCLK);
+    }
     ctx->bindBel(l_bel, &ci, PlaceStrength::STRENGTH_LOCKED);
     std::string out_mode;
     switch (ci.type.hash()) {
@@ -351,6 +358,10 @@ void GowinPacker::pack_ides_iol(CellInfo &ci, std::vector<IdString> &nets_to_rem
         ci.disconnectPort(id_WADDR);
     if (ci.ports.count(id_RADDR))
         ci.disconnectPort(id_RADDR);
+    // Also erase them — ctx->check() validates cell ports against BEL
+    ci.ports.erase(id_ICLK);
+    ci.ports.erase(id_WADDR);
+    ci.ports.erase(id_RADDR);
     ctx->bindBel(l_bel, &ci, PlaceStrength::STRENGTH_LOCKED);
     std::string in_mode;
     switch (ci.type.hash()) {
