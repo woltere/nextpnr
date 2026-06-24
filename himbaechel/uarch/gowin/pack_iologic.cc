@@ -62,7 +62,8 @@ BelId GowinPacker::get_iologici_bel(CellInfo *iob)
 
 void GowinPacker::check_iologic_placement(CellInfo &ci, Loc iob_loc, int diff /* 1 - diff */)
 {
-    if (ci.type.in(id_ODDR, id_ODDRC, id_IDDR, id_IDDRC, id_OSER4, id_IOLOGICI_EMPTY, id_IOLOGICO_EMPTY) || diff) {
+    if (ci.type.in(id_ODDR, id_ODDRC, id_IDDR, id_IDDRC, id_OSER4, id_IOLOGICI_EMPTY, id_IOLOGICO_EMPTY,
+                   id_OSER4_MEM, id_OSER8_MEM, id_ODDR_MEM, id_IDDR_MEM, id_IDES4_MEM, id_IDES8_MEM) || diff) {
         return;
     }
     BelId l_bel = ctx->getBelByLocation(Loc(iob_loc.x, iob_loc.y, BelZ::IOBA_Z + 1 - (iob_loc.z - BelZ::IOBA_Z)));
@@ -79,11 +80,11 @@ bool are_iologic_compatible(CellInfo *ci_0, CellInfo *ci_1)
 {
     switch (ci_0->type.hash()) {
     case ID_ODDR:
-        return ci_1->type == id_IDDR;
+        return ci_1->type.in(id_IDDR, id_IDDR_MEM);
     case ID_ODDRC:
         return ci_1->type == id_IDDRC;
     case ID_IDDR:
-        return ci_1->type == id_ODDR;
+        return ci_1->type.in(id_ODDR, id_ODDR_MEM);
     case ID_IDDRC:
         return ci_1->type == id_ODDRC;
     default:
@@ -137,6 +138,13 @@ void GowinPacker::pack_bi_output_iol(CellInfo &ci, std::vector<IdString> &nets_t
     case ID_OSER8:
         out_mode = "ODDRX4";
         break;
+    case ID_OSER8_MEM:
+        out_mode = "ODDRX4";
+        break;
+    case ID_OSER4_MEM:
+        out_mode = "ODDRX2";
+        break;
+    case ID_ODDR_MEM:
     }
     ci.setParam(ctx->id("OUTMODE"), out_mode);
 
@@ -160,14 +168,17 @@ void GowinPacker::pack_bi_output_iol(CellInfo &ci, std::vector<IdString> &nets_t
     } else { // disconnect TXx ports, ignore these nets
         switch (ci.type.hash()) {
         case ID_OSER8:
+        case ID_OSER8_MEM:
             ci.disconnectPort(id_TX3);
             ci.disconnectPort(id_TX2); /* fall-through */
         case ID_OSER4:
+        case ID_OSER4_MEM:
             ci.disconnectPort(id_TX1);
             ci.disconnectPort(id_TX0);
             break;
         case ID_ODDR:  /* fall-through */
         case ID_ODDRC: /* fall-through */
+        case ID_ODDR_MEM: /* fall-through */
             ci.disconnectPort(id_TX);
             break;
         }
@@ -196,6 +207,9 @@ void GowinPacker::pack_single_output_iol(CellInfo &ci, std::vector<IdString> &ne
         log_error("Can't place %s at %s because it's already taken by %s\n", ctx->nameOf(&ci), ctx->nameOfBel(l_bel),
                   ctx->nameOf(ctx->getBoundBelCell(l_bel)));
     }
+    // Disconnect _MEM-specific TCLK port — not a BEL pin on IOLOGICO
+    if (ci.ports.count(id_TCLK))
+        ci.disconnectPort(id_TCLK);
     ctx->bindBel(l_bel, &ci, PlaceStrength::STRENGTH_LOCKED);
     std::string out_mode;
     switch (ci.type.hash()) {
@@ -277,10 +291,12 @@ void GowinPacker::reconnect_ides_outs(CellInfo *ci)
     switch (ci->type.hash()) {
     case ID_IDDR: /* fall-through*/
     case ID_IDDRC:
+    case ID_IDDR_MEM:
         ci->renamePort(id_Q1, id_Q9);
         ci->renamePort(id_Q0, id_Q8);
         break;
     case ID_IDES4:
+    case ID_IDES4_MEM:
         for (int i = 0; i < 4; ++i) {
             ci->renamePort(ctx->idf("Q%d", 3 - i), dest_ports[i]);
         }
@@ -291,6 +307,7 @@ void GowinPacker::reconnect_ides_outs(CellInfo *ci)
         }
         break;
     case ID_IDES8:
+    case ID_IDES8_MEM:
         for (int i = 0; i < 8; ++i) {
             ci->renamePort(ctx->idf("Q%d", 7 - i), dest_ports[i]);
         }
@@ -321,6 +338,13 @@ void GowinPacker::pack_ides_iol(CellInfo &ci, std::vector<IdString> &nets_to_rem
         log_error("Can't place %s at %s because it's already taken by %s\n", ctx->nameOf(&ci), ctx->nameOfBel(l_bel),
                   ctx->nameOf(ctx->getBoundBelCell(l_bel)));
     }
+    // Disconnect _MEM-specific ports that IOLOGICI BELs don't have
+    if (ci.ports.count(id_ICLK))
+        ci.disconnectPort(id_ICLK);
+    if (ci.ports.count(id_WADDR))
+        ci.disconnectPort(id_WADDR);
+    if (ci.ports.count(id_RADDR))
+        ci.disconnectPort(id_RADDR);
     ctx->bindBel(l_bel, &ci, PlaceStrength::STRENGTH_LOCKED);
     std::string in_mode;
     switch (ci.type.hash()) {
@@ -331,10 +355,19 @@ void GowinPacker::pack_ides_iol(CellInfo &ci, std::vector<IdString> &nets_to_rem
     case ID_IDDRC:
         in_mode = "IDDRX1";
         break;
+    case ID_IDDR_MEM:
+        in_mode = "IDDRX1";
+        break;
     case ID_IDES4:
         in_mode = "IDDRX2";
         break;
+    case ID_IDES4_MEM:
+        in_mode = "IDDRX2";
+        break;
     case ID_IDES8:
+        in_mode = "IDDRX4";
+        break;
+    case ID_IDES8_MEM:
         in_mode = "IDDRX4";
         break;
     case ID_IDES10:
@@ -635,7 +668,7 @@ void GowinPacker::pack_iologic(void)
         if (ctx->debug) {
             log_info("pack %s of type %s.\n", ctx->nameOf(&ci), ci.type.c_str(ctx));
         }
-        if (ci.type.in(id_ODDR, id_ODDRC, id_OSER4, id_OSER8)) {
+        if (ci.type.in(id_ODDR, id_ODDRC, id_OSER4, id_OSER8, id_OSER8_MEM, id_OSER4_MEM, id_ODDR_MEM)) {
             pack_bi_output_iol(ci, nets_to_remove);
             create_aux_iologic_cell(ci, ctx->id("OUTMODE"));
             continue;
@@ -645,7 +678,7 @@ void GowinPacker::pack_iologic(void)
             create_aux_iologic_cell(ci, ctx->id("OUTMODE"));
             continue;
         }
-        if (ci.type.in(id_IDDR, id_IDDRC, id_IDES4, id_IDES8, id_IDES10, id_IVIDEO, id_IOLOGICI_EMPTY)) {
+        if (ci.type.in(id_IDDR, id_IDDRC, id_IDES4, id_IDES8, id_IDES4_MEM, id_IDES8_MEM, id_IDDR_MEM, id_IDES10, id_IVIDEO, id_IOLOGICI_EMPTY)) {
             pack_ides_iol(ci, nets_to_remove);
             create_aux_iologic_cell(ci, ctx->id("INMODE"));
             continue;

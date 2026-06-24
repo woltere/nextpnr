@@ -58,7 +58,8 @@ IOLOGICA_Z = 70
 IDES16_Z   = 74
 OSER16_Z   = 75
 
-BUFG_Z  = 76 # : 81 reserve just in case
+BUFG_Z  = 76
+DQS_Z  = 95 # : 81 reserve just in case
 BSRAM_Z = 100
 
 OSC_Z   = 274
@@ -1073,6 +1074,23 @@ def create_io_tiletype(chip: Chip, db: chipdb, x: int, y: int, ttyp: int, tdesc:
                 else:
                     tt.add_bel_pin(iol, port, wire, PinType.INPUT)
     tdesc.tiletype = tiletype
+    # DQS BELs (at IOLOGIC tile positions)
+    if "IOLOGICA" in db[y, x].bels:
+        dqs = tt.create_bel("DQS", "DQS", z = DQS_Z)
+        dqs_inputs = ["DQSIN","FCLK","PCLK","RESET","READ0","READ1","READ2","READ3",
+            "RCLKSEL0","RCLKSEL1","RCLKSEL2","DLLSTEP0","DLLSTEP1","DLLSTEP2","DLLSTEP3",
+            "DLLSTEP4","DLLSTEP5","DLLSTEP6","DLLSTEP7","WSTEP0","WSTEP1","WSTEP2","WSTEP3",
+            "WSTEP4","WSTEP5","WSTEP6","WSTEP7","RLOADN","RMOVE","RDIR","WLOADN","WMOVE","WDIR","HOLD"]
+        dqs_outputs = ["DQSR90","DQSW0","DQSW270","RPOINT0","RPOINT1","RPOINT2",
+            "WPOINT0","WPOINT1","WPOINT2","RVALID","RBURST","RFLAG","WFLAG"]
+        for pin in dqs_inputs:
+            w = f"dqs_{pin}_X{x}Y{y}"
+            tt.create_wire(w,"IOL_PORT")
+            tt.add_bel_pin(dqs,pin,w,PinType.INPUT)
+        for pin in dqs_outputs:
+            w = f"dqs_{pin}_X{x}Y{y}"
+            tt.create_wire(w,"IOL_PORT")
+            tt.add_bel_pin(dqs,pin,w,PinType.OUTPUT)
     return tt
 
 # logic: luts, dffs, alu etc
@@ -1530,6 +1548,16 @@ def create_dsp_tiletype(chip: Chip, db: chipdb, x: int, y: int, ttyp: int, tdesc
             add_port_wire(tt, dsp, portmap, f"DOUT{outp}", "DSP_O", PinType.OUTPUT)
 
     tdesc.tiletype = tiletype
+    # DLL BEL (shares PLL tile)
+    if db[y, x].bels.get("DLL"):
+        dll = tt.create_bel("DLL", "DLL", z = PLL_Z)
+        dll.flags = BEL_FLAG_GLOBAL
+        for pin in ["CLKIN","STOP","UPDNCNTL","RESET"]:
+            w = f"dll_{pin}_X{x}Y{y}"
+            tt.create_wire(w,"PLL_I"); tt.add_bel_pin(dll,pin,w,PinType.INPUT)
+        for pin in ["LOCK"]+[f"STEP{i}" for i in range(8)]:
+            w = f"dll_{pin}_X{x}Y{y}"
+            tt.create_wire(w,"PLL_O"); tt.add_bel_pin(dll,pin,w,PinType.OUTPUT)
     return tt
 
 # PLL main tile
@@ -1568,6 +1596,16 @@ def create_pll_tiletype(chip: Chip, db: chipdb, x: int, y: int, ttyp: int, tdesc
             tt.create_wire(wire, "PLL_I")
             tt.add_bel_pin(pll, pin, wire, PinType.INPUT)
     tdesc.tiletype = tiletype
+    # DLL BEL (shares PLL tile)
+    if db[y, x].bels.get("DLL"):
+        dll = tt.create_bel("DLL", "DLL", z = PLL_Z)
+        dll.flags = BEL_FLAG_GLOBAL
+        for pin in ["CLKIN","STOP","UPDNCNTL","RESET"]:
+            w = f"dll_{pin}_X{x}Y{y}"
+            tt.create_wire(w,"PLL_I"); tt.add_bel_pin(dll,pin,w,PinType.INPUT)
+        for pin in ["LOCK"]+[f"STEP{i}" for i in range(8)]:
+            w = f"dll_{pin}_X{x}Y{y}"
+            tt.create_wire(w,"PLL_O"); tt.add_bel_pin(dll,pin,w,PinType.OUTPUT)
     return tt
 
 # add Pll's bel to the pad

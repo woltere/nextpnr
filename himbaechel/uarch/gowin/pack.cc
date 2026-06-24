@@ -243,6 +243,51 @@ void GowinPacker::pack_hclk(void)
 // ===================================
 // DLLDLY
 // ===================================
+void GowinPacker::pack_dll(void)
+{
+    log_info("Pack DLLs...\n");
+
+    for (auto &cell : ctx->cells) {
+        auto ci = cell.second.get();
+        if (ci->type != id_DLL)
+            continue;
+        BelId dll_bel;
+        for (auto bel : ctx->getBels()) {
+            if (ctx->getBelType(bel) == id_DLL && ctx->checkBelAvail(bel)) {
+                dll_bel = bel;
+                break;
+            }
+        }
+        if (dll_bel == BelId())
+            log_error("No free DLL BEL for %s.\n", ctx->nameOf(ci));
+        // Expand bus ports (STEP[7:0] -> STEP0..STEP7) to match BEL pins
+        gwu.remove_brackets(ci);
+        ctx->bindBel(dll_bel, ci, STRENGTH_LOCKED);
+    }
+}
+
+void GowinPacker::pack_dqs(void)
+{
+    log_info("Pack DQS...\n");
+
+    for (auto &cell : ctx->cells) {
+        auto ci = cell.second.get();
+        if (ci->type != id_DQS)
+            continue;
+        BelId dqs_bel;
+        for (auto bel : ctx->getBels()) {
+            if (ctx->getBelType(bel) == id_DQS && ctx->checkBelAvail(bel)) {
+                dqs_bel = bel;
+                break;
+            }
+        }
+        if (dqs_bel == BelId())
+            log_error("No free DQS BEL for %s.\n", ctx->nameOf(ci));
+        gwu.remove_brackets(ci);
+        ctx->bindBel(dqs_bel, ci, STRENGTH_LOCKED);
+    }
+}
+
 void GowinPacker::pack_dlldly(void)
 {
     log_info("Pack DLLDLYs...\n");
@@ -572,6 +617,11 @@ void GowinPacker::run(void)
     pack_iem();
     ctx->check();
 
+    pack_dlldly();
+    pack_dll();
+    pack_dqs();
+    ctx->check();
+
     pack_iologic();
     ctx->check();
 
@@ -585,9 +635,6 @@ void GowinPacker::run(void)
     ctx->check();
 
     pack_hclk();
-    ctx->check();
-
-    pack_dlldly();
     ctx->check();
 
     pack_bandgap();

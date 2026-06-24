@@ -48,6 +48,8 @@ struct GowinPacker
 
     // Clocks
     void pack_hclk(void);
+    void pack_dll(void);
+    void pack_dqs(void);
     void pack_dlldly(void);
     void pack_buffered_nets(void);
     void pack_dqce(void);
