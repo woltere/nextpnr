@@ -1119,6 +1119,9 @@ def create_io_tiletype(chip: Chip, db: chipdb, x: int, y: int, ttyp: int, tdesc:
         for dqs_pin, iol_pin in dqs_pin_to_port.items():
             iol_wire_name = bpm.get(iol_pin)
             if iol_wire_name:
+                # Apply FCLK rename (same as IOLOGIC BEL code at line 1065-1066)
+                if iol_pin == 'FCLK':
+                    iol_wire_name = 'FCLKA'
                 dqs_wire = f"dqs_{dqs_pin}_X{x}Y{y}"
                 iol_wire = f"R{x}C{y}_{iol_wire_name}"
                 if tt.has_wire(iol_wire):

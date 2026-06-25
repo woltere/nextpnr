@@ -691,6 +691,9 @@ void GowinImpl::place_constrained_hclk_cells()
                 if (!hclk_driver)
                     continue;
                 if (!(chip_has_clkdiv_hclk_connection || hclk_driver->type == id_CLKDIV2)) {
+                    if (ci->type == id_DQS)
+                        log_info("HCLK DEBUG: DQS %s FCLK driver %s type %s — not CLKDIV2, skipping hclk_net\n",
+                                 ctx->nameOf(ci), ctx->nameOf(hclk_driver), hclk_driver->type.c_str(ctx));
                     continue;
                 }
 
@@ -718,6 +721,12 @@ void GowinImpl::place_constrained_hclk_cells()
 
                     gwu.find_connected_bels(user.cell, user.port, id_CLKDIV2, id_CLKOUT, 1000000, bel_candidates);
                     these_options.insert(bel_candidates.begin(), bel_candidates.end());
+
+                    if (user.cell->type == id_DQS) {
+                        log_info("HCLK DEBUG: DQS %s port %s net %s -> %zu CLKDIV2 candidates\n",
+                                 ctx->nameOf(user.cell), user.port.c_str(ctx),
+                                 ctx->nameOf(hclk_net), bel_candidates.size());
+                    }
 
                     if (seen_options.find(these_options) != seen_options.end())
                         continue;
