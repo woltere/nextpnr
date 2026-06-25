@@ -1085,7 +1085,10 @@ def create_io_tiletype(chip: Chip, db: chipdb, x: int, y: int, ttyp: int, tdesc:
             "WPOINT0","WPOINT1","WPOINT2","RVALID","RBURST","RFLAG","WFLAG"]
         for pin in dqs_inputs:
             w = f"dqs_{pin}_X{x}Y{y}"
-            tt.create_wire(w,"IOL_PORT")
+            if pin in ('PCLK', 'FCLK'):
+                tt.create_wire(w, "TILE_CLK")
+            else:
+                tt.create_wire(w, "IOL_PORT")
             tt.add_bel_pin(dqs,pin,w,PinType.INPUT)
         for pin in dqs_outputs:
             w = f"dqs_{pin}_X{x}Y{y}"
