@@ -1094,7 +1094,7 @@ def create_io_tiletype(chip: Chip, db: chipdb, x: int, y: int, ttyp: int, tdesc:
 
         # Connect DQS wires to the routing fabric via pips to portmap wires
         bpm = db[y, x].bels["IOLOGICA"].portmap
-        tm_class = get_tm_class(db, "X01")
+        tm_class = get_tm_class(db, "F0")
 
         # Map DQS pins to IOLOGIC portmap wire names for routing
         dqs_pin_to_port = {
