@@ -1120,6 +1120,7 @@ def create_io_tiletype(chip: Chip, db: chipdb, x: int, y: int, ttyp: int, tdesc:
                 iol_wire = f"R{x}C{y}_{iol_wire_name}"
                 if tt.has_wire(iol_wire):
                     tt.create_pip(dqs_wire, iol_wire, tm_class)
+    return tt
 
 # logic: luts, dffs, alu etc
 def create_logic_tiletype(chip: Chip, db: chipdb, x: int, y: int, ttyp: int, tdesc: TypeDesc):
