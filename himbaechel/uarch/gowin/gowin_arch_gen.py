@@ -1091,7 +1091,35 @@ def create_io_tiletype(chip: Chip, db: chipdb, x: int, y: int, ttyp: int, tdesc:
             w = f"dqs_{pin}_X{x}Y{y}"
             tt.create_wire(w,"IOL_PORT")
             tt.add_bel_pin(dqs,pin,w,PinType.OUTPUT)
-    return tt
+
+        # Connect DQS wires to the routing fabric via pips to portmap wires
+        bpm = db[y, x].bels["IOLOGICA"].portmap
+        tm_class = get_tm_class(db, "X01")
+
+        # Map DQS pins to IOLOGIC portmap wire names for routing
+        dqs_pin_to_port = {
+            "PCLK": "PCLK", "FCLK": "FCLK", "RESET": "RESET",
+            "DQSIN": "D0",  "HOLD": "D1",
+            "READ0": "D2", "READ1": "D3", "READ2": "D4", "READ3": "C1",
+            "RCLKSEL0": "C0", "RCLKSEL1": "C2", "RCLKSEL2": "C3",
+            "DLLSTEP0": "A1", "DLLSTEP1": "A2", "DLLSTEP2": "A3",
+            "DLLSTEP3": "A4", "DLLSTEP4": "A5", "DLLSTEP5": "A6", "DLLSTEP6": "A7",
+            "DLLSTEP7": "B4", "WSTEP0": "B5", "WSTEP1": "B6", "WSTEP2": "B7",
+            "WSTEP3": "C4", "WSTEP4": "C5", "WSTEP5": "C6", "WSTEP6": "C7",
+            "WSTEP7": "D4", "RLOADN": "D5", "RMOVE": "D6", "RDIR": "D7",
+            "WLOADN": "LSR1", "WMOVE": "LSR2", "WDIR": "CE2",
+            "DQSR90": "F0", "DQSW0": "F1", "DQSW270": "F2",
+            "RPOINT0": "F3", "RPOINT1": "F4", "RPOINT2": "F5",
+            "WPOINT0": "Q4", "WPOINT1": "Q5", "WPOINT2": "Q0",
+            "RVALID": "Q1", "RBURST": "OF4", "RFLAG": "OF2", "WFLAG": "OF0",
+        }
+        for dqs_pin, iol_pin in dqs_pin_to_port.items():
+            iol_wire_name = bpm.get(iol_pin)
+            if iol_wire_name:
+                dqs_wire = f"dqs_{dqs_pin}_X{x}Y{y}"
+                iol_wire = f"R{x}C{y}_{iol_wire_name}"
+                # Bidirectional pip: DQS ↔ IOLOGIC portmap wire
+                tt.create_pip(dqs_wire, iol_wire, tm_class)
 
 # logic: luts, dffs, alu etc
 def create_logic_tiletype(chip: Chip, db: chipdb, x: int, y: int, ttyp: int, tdesc: TypeDesc):
