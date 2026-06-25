@@ -1099,22 +1099,26 @@ def create_io_tiletype(chip: Chip, db: chipdb, x: int, y: int, ttyp: int, tdesc:
         bpm = db[y, x].bels["IOLOGICA"].portmap
         tm_class = get_tm_class(db, "F0")
 
-        # Map DQS pins to IOLOGIC portmap wire names for routing
+        # Unique assignments for critical signals (need individual routing)
+        # Constant-tied signals (DLLSTEP, WSTEP, RLOADN/WLOADN etc.) share wires
         dqs_pin_to_port = {
-            "PCLK": "PCLK", "FCLK": "FCLK", "RESET": "RESET",
-            "DQSIN": "D0",  "HOLD": "D1",
-            "READ0": "D2", "READ1": "D3", "READ2": "D4", "READ3": "C1",
-            "RCLKSEL0": "C0", "RCLKSEL1": "C2", "RCLKSEL2": "C3",
-            "DLLSTEP0": "A1", "DLLSTEP1": "A2", "DLLSTEP2": "A3",
-            "DLLSTEP3": "A4", "DLLSTEP4": "A5", "DLLSTEP5": "A6", "DLLSTEP6": "A7",
-            "DLLSTEP7": "B4", "WSTEP0": "B5", "WSTEP1": "B6", "WSTEP2": "B7",
-            "WSTEP3": "C4", "WSTEP4": "C5", "WSTEP5": "C6", "WSTEP6": "C7",
-            "WSTEP7": "D4", "RLOADN": "D5", "RMOVE": "D6", "RDIR": "D7",
-            "WLOADN": "LSR1", "WMOVE": "LSR2", "WDIR": "CE2",
-            "DQSR90": "F0", "DQSW0": "F1", "DQSW270": "F2",
-            "RPOINT0": "F3", "RPOINT1": "F4", "RPOINT2": "F5",
-            "WPOINT0": "Q4", "WPOINT1": "Q5", "WPOINT2": "Q0",
-            "RVALID": "Q1", "RBURST": "OF4", "RFLAG": "OF2", "WFLAG": "OF0",
+            "PCLK": "CLK1", "FCLK": "FCLK", "RESET": "LSR1",
+            "DQSIN": "A4", "HOLD": "A5",
+            "READ0": "A6", "READ1": "A7", "READ2": "B4", "READ3": "B5",
+            "RCLKSEL0": "B6", "RCLKSEL1": "B7", "RCLKSEL2": "C4",
+            "DQSR90": "Q9", "DQSW0": "F4", "DQSW270": "F5",
+            "RPOINT0": "C5", "RPOINT1": "C6", "RPOINT2": "C7",
+            "WPOINT0": "D4", "WPOINT1": "D5", "WPOINT2": "D6",
+            # Constant-tied or static config — all share the same wire D7
+            "DLLSTEP0": "D7", "DLLSTEP1": "D7", "DLLSTEP2": "D7",
+            "DLLSTEP3": "D7", "DLLSTEP4": "D7", "DLLSTEP5": "D7",
+            "DLLSTEP6": "D7", "DLLSTEP7": "D7",
+            "WSTEP0": "D7", "WSTEP1": "D7", "WSTEP2": "D7",
+            "WSTEP3": "D7", "WSTEP4": "D7", "WSTEP5": "D7",
+            "WSTEP6": "D7", "WSTEP7": "D7",
+            "RLOADN": "D7", "RMOVE": "D7", "RDIR": "D7",
+            "WLOADN": "D7", "WMOVE": "D7", "WDIR": "D7",
+            "RVALID": "D7", "RBURST": "D7", "RFLAG": "D7", "WFLAG": "D7",
         }
         for dqs_pin, iol_pin in dqs_pin_to_port.items():
             iol_wire_name = bpm.get(iol_pin)
