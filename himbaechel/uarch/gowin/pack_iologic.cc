@@ -352,12 +352,15 @@ void GowinPacker::pack_ides_iol(CellInfo &ci, std::vector<IdString> &nets_to_rem
                   ctx->nameOf(ctx->getBoundBelCell(l_bel)));
     }
     // Disconnect _MEM-specific ports that IOLOGICI BELs don't have
-    if (ci.ports.count(id_ICLK))
-        ci.disconnectPort(id_ICLK);
-    if (ci.ports.count(id_WADDR))
-        ci.disconnectPort(id_WADDR);
-    if (ci.ports.count(id_RADDR))
-        ci.disconnectPort(id_RADDR);
+    // Bus ports (WADDR[2:0], etc.) get expanded to WADDR[0], WADDR[1], WADDR[2]
+    std::vector<IdString> ports_to_disconnect;
+    for (auto &p : ci.ports) {
+        std::string name = p.first.str(ctx);
+        if (name.rfind("ICLK", 0) == 0 || name.rfind("WADDR", 0) == 0 || name.rfind("RADDR", 0) == 0)
+            ports_to_disconnect.push_back(p.first);
+    }
+    for (auto port : ports_to_disconnect)
+        ci.disconnectPort(port);
     ctx->bindBel(l_bel, &ci, PlaceStrength::STRENGTH_LOCKED);
     std::string in_mode;
     switch (ci.type.hash()) {
