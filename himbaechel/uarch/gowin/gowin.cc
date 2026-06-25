@@ -952,6 +952,18 @@ void GowinImpl::postRoute()
                         }
                         PipId up_pip = h_net->wires.at(sink_wire).pip;
                         IdString up_wire_name = ctx->getWireName(ctx->getPipSrcWire(up_pip))[1];
+                        // For DQS cells, trace one more hop: dqs_FCLK → FCLKA → HCLK_OUT
+                        if (user.cell->type == id_DQS && !up_wire_name.in(id_HCLK_OUT0, id_HCLK_OUT1, id_HCLK_OUT2, id_HCLK_OUT3,
+                                id_HCLK00, id_HCLK10, id_HCLK20, id_HCLK30,
+                                id_HCLK01, id_HCLK11, id_HCLK21, id_HCLK31,
+                                id_HCLK02, id_HCLK12, id_HCLK22, id_HCLK32,
+                                id_HCLK03, id_HCLK13, id_HCLK23, id_HCLK33)) {
+                            // The first pip goes dqs_FCLK → IOLOGIC FCLK wire.
+                            // Trace the IOLOGIC FCLK wire's upstream pip for the HCLK_OUT.
+                            WireId iol_wire = ctx->getPipSrcWire(up_pip);
+                            PipId iol_up_pip = ctx->getPipsUphill(iol_wire).begin()[0];
+                            up_wire_name = ctx->getWireName(ctx->getPipSrcWire(iol_up_pip))[1];
+                        }
                         if (!gwu.has_5A_HCLK()) {
                             if (up_wire_name.in(id_HCLK_OUT0, id_HCLK_OUT1, id_HCLK_OUT2, id_HCLK_OUT3)) {
                                 user.cell->setAttr(id_IOLOGIC_FCLK, Property(up_wire_name.str(ctx)));

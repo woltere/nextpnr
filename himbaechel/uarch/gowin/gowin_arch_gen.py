@@ -1122,7 +1122,12 @@ def create_io_tiletype(chip: Chip, db: chipdb, x: int, y: int, ttyp: int, tdesc:
                 dqs_wire = f"dqs_{dqs_pin}_X{x}Y{y}"
                 iol_wire = f"R{x}C{y}_{iol_wire_name}"
                 if tt.has_wire(iol_wire):
-                    tt.create_pip(dqs_wire, iol_wire, tm_class)
+                    if dqs_pin in dqs_outputs:
+                        # Output: DQS BEL drives the routing fabric
+                        tt.create_pip(dqs_wire, iol_wire, tm_class)
+                    else:
+                        # Input: routing fabric drives the DQS BEL
+                        tt.create_pip(iol_wire, dqs_wire, tm_class)
     return tt
 
 # logic: luts, dffs, alu etc
