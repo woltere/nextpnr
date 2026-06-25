@@ -1074,8 +1074,8 @@ def create_io_tiletype(chip: Chip, db: chipdb, x: int, y: int, ttyp: int, tdesc:
                 else:
                     tt.add_bel_pin(iol, port, wire, PinType.INPUT)
     tdesc.tiletype = tiletype
-    # DQS BELs (at IOLOGIC tile positions)
-    if "IOLOGICA" in db[y, x].bels:
+    # DQS BELs (at IOLOGIC tile positions, GW2A-18/GW2A-18C only)
+    if chip.name in ('GW2A-18', 'GW2A-18C') and "IOLOGICA" in db[y, x].bels:
         dqs = tt.create_bel("DQS", "DQS", z = DQS_Z)
         dqs_inputs = ["DQSIN","FCLK","PCLK","RESET","READ0","READ1","READ2","READ3",
             "RCLKSEL0","RCLKSEL1","RCLKSEL2","DLLSTEP0","DLLSTEP1","DLLSTEP2","DLLSTEP3",
