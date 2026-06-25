@@ -358,10 +358,6 @@ void GowinPacker::pack_ides_iol(CellInfo &ci, std::vector<IdString> &nets_to_rem
         ci.disconnectPort(id_WADDR);
     if (ci.ports.count(id_RADDR))
         ci.disconnectPort(id_RADDR);
-    // Also erase them — ctx->check() validates cell ports against BEL
-    ci.ports.erase(id_ICLK);
-    ci.ports.erase(id_WADDR);
-    ci.ports.erase(id_RADDR);
     ctx->bindBel(l_bel, &ci, PlaceStrength::STRENGTH_LOCKED);
     std::string in_mode;
     switch (ci.type.hash()) {
@@ -405,9 +401,6 @@ void GowinPacker::pack_ides_iol(CellInfo &ci, std::vector<IdString> &nets_to_rem
         }
         return;
     }
-
-    // Change cell type to match BEL type so ctx->check() passes
-    ci.type = ctx->getBelType(l_bel);
 
     set_daaj_nets(ci, iob_bel);
     reconnect_ides_outs(&ci);
@@ -670,8 +663,8 @@ void GowinPacker::pack_iodelay(void)
         ctx->cells[ncell->name] = std::move(ncell);
     }
 
-    for (auto net : nets_to_remove) {
-        ctx->nets.erase(net);
+    for (auto net : nets_to_remove) {  // disabled: erasing nets corrupts other cells port refs
+            // ctx->nets.erase(net);
     }
 }
 
@@ -705,8 +698,8 @@ void GowinPacker::pack_iologic(void)
         }
     }
 
-    for (auto net : nets_to_remove) {
-        ctx->nets.erase(net);
+    for (auto net : nets_to_remove) {  // disabled: erasing nets corrupts other cells port refs
+        // ctx->nets.erase(net);
     }
 }
 
