@@ -961,7 +961,8 @@ void GowinImpl::postRoute()
                             // The first pip goes dqs_FCLK → IOLOGIC FCLK wire.
                             // Trace the IOLOGIC FCLK wire's upstream pip for the HCLK_OUT.
                             WireId iol_wire = ctx->getPipSrcWire(up_pip);
-                            PipId iol_up_pip = ctx->getPipsUphill(iol_wire).begin()[0];
+                            auto iol_pips = ctx->getPipsUphill(iol_wire);
+                            PipId iol_up_pip = *iol_pips.begin();
                             up_wire_name = ctx->getWireName(ctx->getPipSrcWire(iol_up_pip))[1];
                         }
                         if (!gwu.has_5A_HCLK()) {
@@ -1012,7 +1013,11 @@ void GowinImpl::postRoute()
                     continue;
                 }
                 pr.port = id_CLKFB;
-                up_pip = h_net->wires.at(ctx->getNetinfoSinkWire(h_net, pr, 0)).pip;
+                WireId sink_wire2 = ctx->getNetinfoSinkWire(h_net, pr, 0);
+                if (!h_net->wires.count(sink_wire2)) {
+                    continue;
+                }
+                up_pip = h_net->wires.at(sink_wire2).pip;
                 up_wire_name = ctx->getWireName(ctx->getPipSrcWire(up_pip))[1];
                 if (up_wire_name.in(id_HCLK_OUT0, id_HCLK_OUT1)) {
                     ci->setParam(id_FBSEL, Property("CLKFB1"));
